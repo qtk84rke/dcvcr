@@ -48,5 +48,62 @@ def talk(text: str):
 
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOSIZE)
 
+    def enum_dialog_callback(hwnd, param):
+        class_name = GetClassName(hwnd)
+        win_text = GetWindowText(hwnd)
+
+        if class_name.count('Edit'):
+            SendMessage(hwnd, WM_SETTEXT, 0, temp_file)
+
+        if win_text.count('保存'):
+            SendMessage(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, 0)
+            SendMessage(hwnd, WM_LBUTTONUP, 0, 0)
+
+    def save():
+        time.sleep(WAIT_SEC)
+
+        dialog = FindWindow(None, '音声ファイルの保存')
+        if dialog:
+            EnumChildWindows(dialog, enum_dialog_callback, None)
+            return
+
+        save()
+
+    def enum_callback(hwnd, param):
+        class_name = GetClassName(hwnd)
+        win_text = GetWindowText(hwnd)
+
+        if class_name.count('RichEdit20W'):
+            SendMessage(hwnd, WM_SETTEXT, 0, text)
+
+        if win_text.count('音声保存'):
+            ShowWindow(window, SW_SHOWNORMAL)
+
+            threading.Thread(target=save).start()
+
+            SendMessage(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, 0)
+            SendMessage(hwnd, WM_LBUTTONUP, 0, 0)
+
+    EnumChildWindows(window, enum_callback, None)
+
+    while True:
+        if FindWindow(None, '音声保存'):
+            time.sleep(WAIT_SEC)
+        else:
+            break
+
+    #subprocess.run(['ffmpeg', '-i', temp_file, '-acodec', 'libmp3lame', '-ab', '128k', '-ac', '2', '-ar', '44100', output_file])
+
+    try:
+        os.remove(temp_file)
+        os.remove(temp_file.replace('wav', 'txt'))
+    except:
+        pass
+
+    return output_file
+
 if __name__ == '__main__':
-    talk('テストです')
+    if len(sys.argv) > 1:
+        print(talk(sys.argv[1]))
+    else:
+        print(talk('パイソンからの読み上げテストです'))
